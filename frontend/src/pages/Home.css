@@ -1,0 +1,8 @@
+.home-card{
+    max-width: 520px;
+    height: max-content;
+    margin: 28px auto;
+}
+.home-card h5{
+    padding: 8px;
+}

@@ -12,7 +12,7 @@ const postSchema = new mongoose.Schema({
   },
   imgUrl: {
     type: String,
-    default: "No img available",
+    required: true,
   },
   author: {
     type: ObjectId,

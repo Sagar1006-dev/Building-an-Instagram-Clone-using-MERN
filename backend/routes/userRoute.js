@@ -12,43 +12,76 @@ router.get("/home", protectedRoute, (req, res) => {
   res.send("Welcome to Your Home!");
 });
 
-router.post("/register", (req, res) => {
-  const { fullName, email, password } = req.body;
+// router.post("/register", (req, res) => {
+//   const { fullName, email, password } = req.body;
 
-  if (!fullName || !email || !password) {
-    return res.status(400).json({ error: "Mandatory fields cannot be empty" });
-  }
+//   if (!fullName || !email || !password) {
+//     return res.status(400).json({ error: "Mandatory fields cannot be empty" });
+//   }
 
-  bcrypt.hash(password, 16).then((hp) => {
+//   bcrypt.hash(password, 16).then((hp) => {
+//     const userData = new UserModel({
+//       fullName,
+//       email,
+//       password: hp,
+//     });
+
+//     UserModel.findOne({ email: email })
+//       .then((dbUser) => {
+//         if (dbUser) {
+//           return res.status(400).json({ error: "User already exists" });
+//         }
+
+//         userData
+//           .save()
+//           .then((result) => {
+//             res
+//               .status(201)
+//               .json({ result, message: "User registered successfully" });
+//           })
+//           .catch((error) => {
+//             console.error(error);
+//             res.status(500).json({ error: "Internal Server Error" });
+//           });
+//       })
+//       .catch((error) => {
+//         console.error(error);
+//         res.status(500).json({ error: "Internal Server Error" });
+//       });
+//   });
+// });
+
+router.post("/register", async (req, res) => {
+  try {
+    const { fullName, email, password } = req.body;
+
+    if (!fullName || !email || !password) {
+      return res
+        .status(400)
+        .json({ error: "Mandatory fields cannot be empty" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 16);
+
+    const dbUser = await UserModel.findOne({ email: email });
+
+    if (dbUser) {
+      return res.status(400).json({ error: "User already exists" });
+    }
+
     const userData = new UserModel({
       fullName,
       email,
-      password: hp,
+      password: hashedPassword,
     });
 
-    UserModel.findOne({ email: email })
-      .then((dbUser) => {
-        if (dbUser) {
-          return res.status(400).json({ error: "User already exists" });
-        }
+    const result = await userData.save();
 
-        userData
-          .save()
-          .then((result) => {
-            res
-              .status(201)
-              .json({ result, message: "User registered successfully" });
-          })
-          .catch((error) => {
-            console.error(error);
-            res.status(500).json({ error: "Internal Server Error" });
-          });
-      })
-      .catch((error) => {
-        console.error(error);
-        res.status(500).json({ error: "Internal Server Error" });
-      });
-  });
+    res.status(201).json({ result, message: "User registered successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 router.post("/login", (req, res) => {
@@ -69,7 +102,8 @@ router.post("/login", (req, res) => {
         .then((didMatch) => {
           if (didMatch) {
             const jwtToken = jwt.sign({ _id: dbUser._id }, JWT_SECRET);
-            res.json({ token: jwtToken });
+            const { _id, fullName, email } = dbUser;
+            res.json({ token: jwtToken, userInfo: { _id, fullName, email } });
             // res.json({ result: "Login successfully" });
           } else {
             return res.status(401).json({ error: "Invalid Credentials" });
